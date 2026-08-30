@@ -62,10 +62,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cpolar-2/dsh-plug.git"
+    "url": "git+https://github.com/cpolar-2/dsh-plugin.git"
   },
-  "homepage": "https://github.com/cpolar-2/dsh-plug#readme",
+  "homepage": "https://github.com/cpolar-2/dsh-plugin#readme",
   "bugs": {
-    "url": "https://github.com/cpolar-2/dsh-plug/issues"
+    "url": "https://github.com/cpolar-2/dsh-plugin/issues"
   }
 }
