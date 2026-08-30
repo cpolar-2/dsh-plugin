@@ -9,19 +9,10 @@ DeepSeek Harness 应用用量统计插件:在 Web 界面提供一个独立的 `�
 
 同时提供前端入口:client 面在侧边栏底部(设置按钮旁)注册「使用统计」按钮,点击新标签页打开仪表盘。
 
-English | 中文
+<img width="1023" height="574" alt="image" src="https://github.com/user-attachments/assets/bb5c6616-97f5-4a74-9079-0f77bb275961" />
 
-## How it works
-
-- Wraps the host `llm/stream` waterfall and records each model call's `usage` block
-  (input / output / cacheRead / cacheWrite / reasoning) into a local ledger at
-  `$DSH_HOME/storages/usage-stats/ledger.json`, split by local day, model and session.
-  AsyncLocalStorage depth marking deduplicates wrapper-routed streams (modlens etc.), same as dsh-cost-meter.
-- Registers two routes on the host web server:
-  - `GET /usage-stats` — the self-contained dashboard page (no external assets);
-  - `GET /api/usage-stats/summary` — one JSON payload: totals, peak, longest chat, streaks,
-    30-day per-model trend series, ~1 year heatmap and all-time per-model totals.
-- Zero runtime dependencies, zero build step (plain ESM JavaScript + JSDoc), Node ≥ 20.
+<img width="1011" height="672" alt="image" src="https://github.com/user-attachments/assets/c310d861-92a5-4f3b-a94f-d781304088a0" />
+<img width="1184" height="439" alt="image" src="https://github.com/user-attachments/assets/21c6cf18-f429-40a7-bf25-f4398636b7f6" />
 
 ## Install
 
