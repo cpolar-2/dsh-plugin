@@ -18,7 +18,7 @@ DeepSeek Harness 应用用量统计插件:在 Web 界面提供一个独立的 `�
 
 ```bash
 # 从本地路径安装(开发)
-dsh plugin --profile web add H:/deepseek-harness/dsh-plugin/dsh-usage-stats
+dsh plugin --profile web add dsh-usage-stats
 
 # 或不打包直接预览:把 cordis.patch.yml 里的 name 保持为 dsh-usage-stats,
 # 并确保该路径可被 Node 解析(profile node_modules 或 pnpm link)。
@@ -54,6 +54,4 @@ node scripts/preview.mjs  # 注入演示数据并在 8787 端口起一个预览�
   「当前连续天数」今天尚未使用时不断签(从昨天回数)。
 - 若与 dsh-cost-meter 同时使用,两者各自独立记账,互不影响。
 
-## License
 
-MIT
