@@ -1,0 +1,71 @@
+{
+  "name": "dsh-usage-stats",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness 应用用量统计插件:累计/峰值 Token、聊天时长、连续使用天数、Token 活动热力图、每日模型趋势图与模型用量占比环形图,独立 /usage-stats 仪表盘页面。App usage dashboard plugin for DeepSeek Harness: cumulative/peak tokens, chat duration, streak days, token activity heatmap, per-model daily trend and model share donut, served as a standalone /usage-stats page.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "dshhub": {
+    "schemaVersion": 1,
+    "displayName": "dsh-usage-stats",
+    "summary": "应用用量统计仪表盘:累计/峰值 Token、最长聊天时长、连续使用天数、Token 活动热力图、每日模型趋势图与模型用量占比。",
+    "categories": [
+      "观测",
+      "Web UI"
+    ],
+    "surfaces": [
+      "host",
+      "web"
+    ],
+    "capabilities": {},
+    "compatibility": {
+      "dsh": ">=0.1.0-rc.5",
+      "node": ">=20"
+    },
+    "permissions": {}
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "usage",
+    "stats",
+    "dashboard"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cpolar-2/dsh-plug.git"
+  },
+  "homepage": "https://github.com/cpolar-2/dsh-plug#readme",
+  "bugs": {
+    "url": "https://github.com/cpolar-2/dsh-plug/issues"
+  }
+}

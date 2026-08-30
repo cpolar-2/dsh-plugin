@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使用统计 · dsh-usage-stats</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #8a8f99;
+    --border: #ececf0;
+    --accent: #3b82f6;
+    --heat: #e8f0fe;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 40px 48px;
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: 1px; }
+  .pill {
+    font-size: 12px; color: #6b7280; background: #eceef1;
+    border-radius: 999px; padding: 3px 12px;
+  }
+  .card {
+    background: var(--card); border-radius: 14px;
+    padding: 20px 24px; margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  }
+  .stats { display: flex; }
+  .stat { flex: 1; text-align: center; padding: 6px 0; }
+  .stat + .stat { border-left: 1px solid var(--border); }
+  .stat b { display: block; font-size: 22px; font-weight: 700; }
+  .stat span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .card-head h2 { font-size: 15px; font-weight: 600; margin: 0; }
+  .seg { display: flex; background: #f0f1f4; border-radius: 999px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; color: #6b7280;
+    font-size: 12px; padding: 3px 14px; border-radius: 999px; cursor: pointer;
+  }
+  .seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .range-row { display: flex; align-items: center; justify-content: space-between; margin: 26px 2px 12px; }
+  .range-row .label { font-size: 15px; font-weight: 600; }
+  #heatmap-box { overflow-x: auto; }
+  #months { display: flex; font-size: 11px; color: var(--muted); margin-top: 6px; user-select: none; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; color: #4b5563; }
+  .legend i {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 5px; vertical-align: 1px;
+  }
+  .donut-row { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
+  .donut-wrap { position: relative; width: 220px; height: 220px; flex: none; }
+  .donut-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  .donut-center b { font-size: 20px; }
+  .donut-center span { color: var(--muted); font-size: 12px; }
+  .model-list { flex: 1; min-width: 280px; }
+  .model-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
+  .model-row + .model-row { border-top: 1px solid var(--border); }
+  .sess-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+  .sess-row + .sess-row { border-top: 1px solid var(--border); }
+  .sess-rank {
+    flex: none; width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f0f1f4; color: #6b7280; font-size: 12px; font-weight: 600;
+  }
+  .sess-rank.top { background: var(--accent); color: #fff; }
+  .sess-main { flex: 1; min-width: 0; }
+  .sess-title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sess-meta { color: var(--muted); font-size: 12px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sess-tok { flex: none; text-align: right; }
+  .sess-tok b { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .sess-tok span { display: block; color: var(--muted); font-size: 11px; }
+  .sess-bar { height: 4px; border-radius: 2px; background: #f0f1f4; margin-top: 6px; overflow: hidden; }
+  .sess-bar i { display: block; height: 100%; border-radius: 2px; background: var(--accent); }
+  .sess-scroll { max-height: 420px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+  .link-btn {
+    border: 0; background: transparent; color: var(--accent); font: inherit;
+    font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 6px; white-space: nowrap;
+  }
+  .link-btn:hover { background: #eef4fe; }
+  .model-row i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .model-row .name { flex: 1; }
+  .model-row .pct { color: var(--muted); width: 52px; text-align: right; }
+  .model-row .tok { color: var(--muted); width: 120px; text-align: right; font-size: 12px; }
+  .foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+  #refresh {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #d7dae0; background: #fff; color: #374151;
+    border-radius: 10px; padding: 7px 16px; font-size: 13px; cursor: pointer;
+  }
+  #refresh:hover { background: #f3f4f6; }
+  #refresh.spinning svg { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { color: var(--muted); text-align: center; padding: 30px 0; font-size: 13px; }
+  svg text { font-family: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>使用统计</h1><span class="pill">应用用量</span></header>
+
+  <div class="card stats" id="stats"></div>
+
+  <div class="card">
+    <div class="card-head"><h2>模型用量</h2></div>
+    <div class="donut-row">
+      <div class="donut-wrap">
+        <svg id="donut" width="220" height="220" viewBox="0 0 220 220"></svg>
+        <div class="donut-center" id="donut-center"></div>
+      </div>
+      <div class="model-list" id="model-list"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Token 活动</h2>
+      <div class="seg" id="heat-mode">
+        <button data-mode="daily" class="on">每日</button>
+        <button data-mode="weekly">每周</button>
+        <button data-mode="cumulative">累计</button>
+      </div>
+    </div>
+    <div id="heatmap-box"></div>
+  </div>
+
+  <div class="range-row">
+    <span class="label">时间范围</span>
+    <div class="seg" id="range-mode">
+      <button data-range="7" class="on">近 7 日</button>
+      <button data-range="30">近 30 日</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>每日 Token 趋势图</h2>
+      <div class="seg" id="chart-type">
+        <button data-type="line" class="on">折线</button>
+        <button data-type="bar">柱状</button>
+      </div>
+    </div>
+    <div class="legend" id="trend-legend"></div>
+    <div id="trend-box"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>会话用量</h2>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="session-expand" class="link-btn" style="display:none"></button>
+        <div class="seg" id="session-mode">
+          <button data-mode="tokens" class="on">用量 Top 5</button>
+          <button data-mode="recent">最近 5 个</button>
+        </div>
+      </div>
+    </div>
+    <div id="session-list"></div>
+  </div>
+
+  <div class="foot">
+    <button id="refresh">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+      刷新
+    </button>
+  </div>
+</div>
+
+<script>
+'use strict'
+const PALETTE = ['#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#f97316', '#06b6d4', '#ec4899', '#6b7280']
+const HEAT_STEPS = ['#ebedf0', '#cfe1fc', '#9ec2f8', '#5b93f0', '#2f6fe4', '#1d4ed8']
+const DAY_MS = 86400000
+
+let data = null
+let heatMode = 'daily'
+let rangeDays = 7
+
+const $ = (sel) => document.querySelector(sel)
+
+function fmtTokens(v) {
+  if (v >= 1e8) return trim(v / 1e8) + ' 亿'
+  if (v >= 1e4) return trim(v / 1e4) + ' 万'
+  return String(Math.round(v))
+}
+function trim(v) { return (Math.round(v * 10) / 10).toLocaleString('en-US') }
+function fmtDuration(ms) {
+  if (ms <= 0) return '0 分钟'
+  const min = Math.round(ms / 60000)
+  const h = Math.floor(min / 60), m = min % 60
+  if (h <= 0) return m + ' 分钟'
+  return h + ' 小时 ' + m + ' 分钟'
+}
+function dayLabel(key) { const [y, m, d] = key.split('-'); return (+m) + '月' + (+d) + '日' }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) }
+
+async function load() {
+  const btn = $('#refresh')
+  btn.classList.add('spinning')
+  try {
+    const res = await fetch('/api/usage-stats/summary', { cache: 'no-store' })
+    if (!res.ok) throw new Error('HTTP ' + res.status)
+    data = await res.json()
+    render()
+  } catch (err) {
+    $('#stats').innerHTML = '<div class="empty" style="flex:1">数据加载失败:' + esc(err.message) + '</div>'
+  } finally {
+    btn.classList.remove('spinning')
+  }
+}
+
+function render() {
+  renderStats()
+  renderHeatmap()
+  renderTrend()
+  renderSessions()
+  renderDonut()
+}
+
+function renderStats() {
+  const s = data
+  const cards = [
+    [fmtTokens(s.totals.tokens), '累计 Token 数'],
+    [fmtTokens(s.peak.tokens), '峰值 Token 数'],
+    [fmtDuration(s.longestChatMs), '最长聊天时长'],
+    [String(s.streaks.current) + ' 天', '当前连续天数'],
+    [String(s.streaks.longest) + ' 天', '最长连续天数'],
+  ]
+  $('#stats').innerHTML = cards.map(([v, l]) => '<div class="stat"><b>' + esc(v) + '</b><span>' + l + '</span></div>').join('')
+}
+
+/* ── Token 活动热力图 ───────────────────────────────────────────── */
+
+function heatLevel(v, max) {
+  if (v <= 0) return 0
+  const t = Math.cbrt(v / max)
+  return Math.min(5, 1 + Math.floor(t * 5))
+}
+
+function renderHeatmap() {
+  const box = $('#heatmap-box')
+  const heat = data.heatmap
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  // 对齐到周一开头的周网格;回溯约 53 周。
+  const end = new Date(today)
+  const start = new Date(today.getTime() - 52 * 7 * DAY_MS)
+  const startShift = (start.getDay() + 6) % 7 // 周一=0
+  start.setTime(start.getTime() - startShift * DAY_MS)
+
+  const cells = []      // 每列一周: { days: [{key, date, value}] }
+  const monthMarks = [] // 每列首可标注月份
+  let prevMonth = -1
+  for (let col = 0, t = new Date(start); t <= end; t = new Date(t.getTime() + DAY_MS), col++) {
+    const key = toDateKey(t)
+    if (col % 7 === 0) {
+      cells.push({ month: t.getMonth(), days: [] })
+      if (t.getMonth() !== prevMonth) { monthMarks.push({ col, label: (t.getMonth() + 1) + '月' }); prevMonth = t.getMonth() }
+    }
+    cells[cells.length - 1].days.push({ key, date: new Date(t), value: heat[key] ?? 0 })
+  }
+
+  // 三种模式的取值函数。
+  let valueOf
+  if (heatMode === 'daily') valueOf = (day) => day.value
+  else if (heatMode === 'weekly') {
+    valueOf = null // 列级取值,单独处理
+  } else {
+    let running = 0
+    const cum = {}
+    for (const column of cells) for (const day of column.days) { running += day.value; cum[day.key] = running }
+    valueOf = (day) => cum[day.key]
+  }
+
+  const values = []
+  for (const column of cells) {
+    if (heatMode === 'weekly') {
+      const weekTotal = column.days.reduce((s, d) => s + d.value, 0)
+      values.push(weekTotal)
+    } else {
+      for (const day of column.days) values.push(valueOf(day))
+    }
+  }
+  const max = Math.max(1, ...values)
+
+  const CELL = 11, GAP = 3, TOP = 4
+  const width = cells.length * (CELL + GAP) + 8
+  const height = 7 * (CELL + GAP) + TOP * 2
+  let svg = '<svg width="' + width + '" height="' + height + '" style="display:block">'
+  cells.forEach((column, ci) => {
+    const weekValue = column.days.reduce((s, d) => s + d.value, 0)
+    column.days.forEach((day, ri) => {
+      let value, tip
+      if (heatMode === 'weekly') { value = weekValue; tip = weekValue + ' tokens · ' + column.days[0].key + ' 周' }
+      else { value = valueOf(day); tip = day.value + ' tokens · ' + day.key }
+      const x = ci * (CELL + GAP)
+      const y = TOP + ri * (CELL + GAP)
+      const future = day.date > today
+      svg += '<rect x="' + x + '" y="' + y + '" width="' + CELL + '" height="' + CELL + '" rx="2.5" fill="'
+        + (future ? '#f6f7f8' : HEAT_STEPS[heatLevel(value, max)]) + '"><title>' + esc(tip) + '</title></rect>'
+    })
+  })
+  svg += '</svg>'
+  box.innerHTML = svg + '<div id="months" style="position:relative;height:16px">'
+    + monthMarks
+      .map((mark) => ({ ...mark, px: Math.round((mark.col / 7) * (CELL + GAP)) }))
+      .filter((mark, i, all) => i === 0 || mark.px - all[i - 1].px >= 28)
+      .map((mark) => '<span style="position:absolute;left:' + mark.px + 'px">' + mark.label + '</span>')
+      .join('')
+    + '</div>'
+}
+
+function toDateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+}
+
+/* ── 每日趋势图 ─────────────────────────────────────────────────── */
+
+let chartType = 'line'
+
+function renderTrend() {
+  const days = data.trend.days.slice(-rangeDays)
+  const series = data.trend.series
+  const names = Object.keys(series)
+  const box = $('#trend-box')
+  $('#trend-legend').innerHTML = names.map((name, i) =>
+    '<span><i style="background:' + modelColor(name, i) + '"></i>' + esc(name) + '</span>').join('')
+
+  const W = 860, H = 260, PAD_L = 46, PAD_R = 16, PAD_T = 14, PAD_B = 30
+  const iw = W - PAD_L - PAD_R, ih = H - PAD_T - PAD_B
+  let max = 0
+  for (const name of names) for (const v of series[name].slice(-rangeDays)) max = Math.max(max, v)
+  if (max <= 0) {
+    box.innerHTML = '<div class="empty">暂无用量数据 —— 开始对话后这里会出现每日趋势</div>'
+    return
+  }
+  max = Math.max(1, max)
+  const x = (i) => PAD_L + (days.length <= 1 ? iw / 2 : (i / (days.length - 1)) * iw)
+  const y = (v) => PAD_T + ih - (v / max) * ih
+
+  let svg = '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet">'
+  for (let g = 0; g <= 4; g++) {
+    const gy = PAD_T + (ih * g) / 4
+    const value = max * (1 - g / 4)
+    svg += '<line x1="' + PAD_L + '" y1="' + gy + '" x2="' + (W - PAD_R) + '" y2="' + gy + '" stroke="#ececf0" stroke-dasharray="3 4"/>'
+    svg += '<text x="' + (PAD_L - 8) + '" y="' + (gy + 4) + '" font-size="11" fill="#8a8f99" text-anchor="end">' + esc(fmtTokens(value)) + '</text>'
+  }
+  const labelEvery = Math.max(1, Math.ceil(days.length / 8))
+  days.forEach((key, i) => {
+    if (i % labelEvery !== 0 && i !== days.length - 1) return
+    svg += '<text x="' + x(i) + '" y="' + (H - 8) + '" font-size="11" fill="#8a8f99" text-anchor="middle">' + esc(dayLabel(key)) + '</text>'
+  })
+
+  if (chartType === 'bar') {
+    // 堆叠柱状图:每天一根柱,各模型自下而上堆叠,颜色与图例一致。
+    const slot = days.length > 1 ? iw / (days.length - 1) : iw
+    const barW = Math.max(4, Math.min(16, slot * 0.62))
+    for (let i = 0; i < days.length; i++) {
+      const cx = x(i)
+      let cum = 0
+      for (const name of names) {
+        const v = series[name][series[name].length - days.length + i] ?? 0
+        if (v <= 0) continue
+        const y0 = y(cum), y1 = y(cum + v)
+        svg += '<rect x="' + r1(cx - barW / 2) + '" y="' + r1(y1) + '" width="' + r1(barW) + '" height="' + r1(Math.max(1, y0 - y1))
+          + '" fill="' + modelColor(name, names.indexOf(name)) + '"><title>' + esc(name) + ' · ' + esc(dayLabel(days[i]))
+          + ': ' + esc(fmtTokens(v)) + ' tokens</title></rect>'
+        cum += v
+      }
+      // 透明命中区:整根柱的悬停合计提示。
+      svg += '<rect x="' + r1(cx - slot / 2) + '" y="' + PAD_T + '" width="' + r1(slot) + '" height="' + ih
+        + '" fill="transparent"><title>' + esc(dayLabel(days[i])) + ' 合计: ' + esc(fmtTokens(cum)) + ' tokens</title></rect>'
+    }
+  } else {
+    for (const name of names) {
+      const values = series[name].slice(-rangeDays)
+      if (!values.some((v) => v > 0)) continue
+      const points = values.map((v, i) => [x(i), y(v)])
+      svg += '<path d="' + smoothPath(points) + '" fill="none" stroke="' + modelColor(name, names.indexOf(name))
+        + '" stroke-width="2.2" stroke-linecap="round"><title>' + esc(name) + '</title></path>'
+      for (const [px, py] of points) {
+        svg += '<circle cx="' + px + '" cy="' + py + '" r="6" fill="transparent" pointer-events="all"><title>' + esc(name) + '</title></circle>'
+      }
+    }
+  }
+  svg += '</svg>'
+  box.innerHTML = svg
+}
+
+/** Catmull-Rom → 三次贝塞尔,得到截图那样的平滑曲线。 */
+function smoothPath(pts) {
+  if (pts.length === 0) return ''
+  if (pts.length === 1) return 'M' + pts[0][0] + ' ' + pts[0][1]
+  let d = 'M' + pts[0][0] + ' ' + pts[0][1]
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6
+    d += 'C' + r1(c1x) + ' ' + r1(c1y) + ' ' + r1(c2x) + ' ' + r1(c2y) + ' ' + r1(p2[0]) + ' ' + r1(p2[1])
+  }
+  return d
+}
+function r1(v) { return Math.round(v * 10) / 10 }
+
+function modelColor(name, index) {
+  return name === '其他' ? '#9ca3af' : PALETTE[index % (PALETTE.length - 1)]
+}
+
+/* ── 会话用量榜 ─────────────────────────────────────────────────── */
+
+let sessionMode = 'tokens'
+let sessionExpanded = false
+const SESSION_PREVIEW = 5
+
+function renderSessions() {
+  const box = $('#session-list')
+  const expandBtn = $('#session-expand')
+  const info = data.sessions
+  if (!info || info.total === 0) {
+    box.innerHTML = '<div class="empty">暂无会话数据 —— 开始对话后这里会出现每个会话的用量</div>'
+    expandBtn.style.display = 'none'
+    return
+  }
+  const all = sessionMode === 'tokens' ? info.byTokens : info.byRecent
+  const rows = sessionExpanded ? all : all.slice(0, SESSION_PREVIEW)
+  expandBtn.style.display = all.length > SESSION_PREVIEW ? '' : 'none'
+  expandBtn.textContent = sessionExpanded
+    ? '收起 ▴'
+    : '展开全部 ' + all.length + ' 个 ▾'
+
+  const max = Math.max(1, ...all.map((r) => r.tokens))
+  const renderRow = (row, i) => {
+    const title = row.title || '未命名会话 ' + esc(row.id.slice(0, 8))
+    const meta = [
+      fmtTime(row.lastAt),
+      row.requests + ' 次请求',
+      row.topModel ? esc(row.topModel) : null,
+    ].filter(Boolean).join(' · ')
+    const pct = Math.round((row.tokens / max) * 100)
+    return '<div class="sess-row">'
+      + '<span class="sess-rank' + (i === 0 && sessionMode === 'tokens' && row.tokens > 0 ? ' top' : '') + '">' + (i + 1) + '</span>'
+      + '<div class="sess-main"><div class="sess-title">' + title + '</div>'
+      + '<div class="sess-meta">' + meta + '</div>'
+      + '<div class="sess-bar"><i style="width:' + pct + '%"></i></div></div>'
+      + '<div class="sess-tok"><b>' + esc(fmtTokens(row.tokens)) + '</b><span>tokens</span></div>'
+      + '</div>'
+  }
+  // 展开(或本就不足 5 个)时直接平铺;预览态只显示前 5,无滚动。
+  box.className = rows.length > SESSION_PREVIEW ? 'sess-scroll' : ''
+  box.innerHTML = rows.map(renderRow).join('')
+  if (sessionExpanded) box.scrollTop = 0
+}
+
+function fmtTime(ms) {
+  if (!ms) return ''
+  const d = new Date(ms)
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+}
+
+/* ── 模型用量环形图 ─────────────────────────────────────────────── */
+
+function renderDonut() {
+  const models = data.models.slice(0, 8)
+  const total = models.reduce((s, m) => s + m.tokens, 0) || 1
+  const svg = $('#donut')
+  const CX = 110, CY = 110, R = 82, SW = 34
+  const C = 2 * Math.PI * R
+  let offset = 0
+  let rings = ''
+  models.forEach((model, i) => {
+    const frac = model.tokens / total
+    const gap = models.length > 1 ? Math.min(2.5, C * frac * 0.06) : 0
+    const len = Math.max(0, C * frac - gap)
+    if (len <= 0) return
+    rings += '<circle cx="' + CX + '" cy="' + CY + '" r="' + R + '" fill="none" stroke="'
+      + modelColor(model.name, i) + '" stroke-width="' + SW + '" stroke-dasharray="' + r1(len) + ' ' + r1(C - len)
+      + '" stroke-dashoffset="' + r1(-offset - gap / 2) + '" transform="rotate(-90 ' + CX + ' ' + CY + ')"><title>'
+      + esc(model.name) + ': ' + esc(fmtTokens(model.tokens)) + ' tokens</title></circle>'
+    offset += C * frac
+  })
+  svg.innerHTML = rings
+  $('#donut-center').innerHTML = '<b>' + esc(fmtTokens(data.totals.tokens)) + '</b><span>tokens</span>'
+
+  $('#model-list').innerHTML = models.map((model, i) => {
+    const pct = ((model.tokens / total) * 100).toFixed(1)
+    return '<div class="model-row"><i style="background:' + modelColor(model.name, i) + '"></i>'
+      + '<span class="name">' + esc(model.name) + '</span>'
+      + '<span class="pct">' + pct + '%</span>'
+      + '<span class="tok">' + esc(fmtTokens(model.tokens)) + ' tokens</span></div>'
+  }).join('') || '<div class="empty">暂无用量数据</div>'
+}
+
+/* ── 交互 ───────────────────────────────────────────────────────── */
+
+document.addEventListener('click', (event) => {
+  const modeBtn = event.target.closest('#heat-mode button')
+  if (modeBtn) {
+    heatMode = modeBtn.dataset.mode
+    for (const b of document.querySelectorAll('#heat-mode button')) b.classList.toggle('on', b === modeBtn)
+    renderHeatmap()
+    return
+  }
+  const rangeBtn = event.target.closest('#range-mode button')
+  if (rangeBtn) {
+    rangeDays = +rangeBtn.dataset.range
+    for (const b of document.querySelectorAll('#range-mode button')) b.classList.toggle('on', b === rangeBtn)
+    renderTrend()
+    return
+  }
+  const sessionBtn = event.target.closest('#session-mode button')
+  if (sessionBtn) {
+    sessionMode = sessionBtn.dataset.mode
+    for (const b of document.querySelectorAll('#session-mode button')) b.classList.toggle('on', b === sessionBtn)
+    renderSessions()
+    return
+  }
+  if (event.target.closest('#session-expand')) {
+    sessionExpanded = !sessionExpanded
+    renderSessions()
+    return
+  }
+  const chartBtn = event.target.closest('#chart-type button')
+  if (chartBtn) {
+    chartType = chartBtn.dataset.type
+    for (const b of document.querySelectorAll('#chart-type button')) b.classList.toggle('on', b === chartBtn)
+    renderTrend()
+    return
+  }
+  if (event.target.closest('#refresh')) load()
+})
+
+load()
+setInterval(load, 60000)
+</script>
+</body>
+</html>

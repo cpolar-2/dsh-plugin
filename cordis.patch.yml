@@ -1,0 +1,7 @@
+# dsh-usage-stats bundle patch: one host row.
+# The row `name` resolves from the profile's node_modules where
+# `dsh plugin --profile <name> add <path>` installed this package;
+# the exported cordis `name` is `usage-stats` (row id keeps the same label).
+- insert:
+    - id: usage-stats
+      name: dsh-usage-stats
